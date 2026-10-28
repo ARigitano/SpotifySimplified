@@ -1,4 +1,5 @@
-# Secrets / local config
+# Local config (non-hidden so Buildozer bundles it into the APK)
+settings.env
 .env
 .cache
 .cache-*

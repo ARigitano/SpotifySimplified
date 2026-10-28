@@ -18,7 +18,9 @@ intent system — that's the next piece to build before this can run on a phone.
 
 1. Create a Spotify app at https://developer.spotify.com/dashboard.
    - Add `http://127.0.0.1:8888/callback` as a Redirect URI in the app settings.
-2. Copy `.env.example` to `.env` and fill in:
+2. Copy `settings.env.example` to `settings.env` (git-ignored; deliberately not a
+   hidden file, because Buildozer skips dotfiles and it must be bundled into the
+   APK) and fill in:
    - `SPOTIFY_CLIENT_ID` from your Spotify app.
    - `SPOTIFY_PLAYLIST_ID` — the playlist URL, URI, or bare ID to control.
 3. Create a virtual environment and install dependencies:
@@ -42,8 +44,13 @@ least one active Spotify device.
 
 `buildozer.spec` is configured to build an APK via:
 ```
+pip install buildozer cython
 buildozer android debug
 ```
+The APK lands in `bin/`. Note that `settings.env` (including your Client ID and
+playlist) gets bundled into the APK. `buildozer.spec` pins python-for-android to
+`v2024.01.21` (Python 3.11) because the latest release's Python 3.14 toolchain
+had a broken pip at the time of writing.
 This requires a Linux machine with the Android SDK/NDK (buildozer installs
 most of this automatically on first run). The OAuth redirect handling still
 needs Android-specific work before login will succeed on-device — see Status

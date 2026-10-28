@@ -58,10 +58,12 @@ class RootLayout(BoxLayout):
             controller = SpotifyController()
             controller.start_playlist()
         except NoActiveDeviceError as error:
-            Clock.schedule_once(lambda _dt: self._on_connect_failed(str(error)))
+            message = str(error)
+            Clock.schedule_once(lambda _dt: self._on_connect_failed(message))
             return
         except Exception as error:  # noqa: BLE001 - surface any auth/API error to the UI
-            Clock.schedule_once(lambda _dt: self._on_connect_failed(str(error)))
+            message = str(error)
+            Clock.schedule_once(lambda _dt: self._on_connect_failed(message))
             return
         Clock.schedule_once(lambda _dt: self._on_connected(controller))
 
