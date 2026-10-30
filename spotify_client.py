@@ -35,7 +35,7 @@ class SpotifyController:
         device_id = self._active_device_id()
         if device_id is None:
             raise NoActiveDeviceError("Open Spotify on a device first, then try again.")
-        self._sp.start_playback(device_id=device_id, context_uri=self._playlist_uri())
+        self._sp.start_playback(device_id=device_id, context_uri=self._playlist_uri(), offset={"position": 0})
 
     # Normalizes the configured playlist URL/URI/ID into a canonical spotify:playlist: URI.
     def _playlist_uri(self):
@@ -46,21 +46,9 @@ class SpotifyController:
             playlist_id = playlist_id.split("playlist/")[1].split("?")[0]
         return f"spotify:playlist:{playlist_id}"
 
-    # Resumes playback on whatever device/context is currently paused.
-    def play(self):
-        self._sp.start_playback()
-
-    # Pauses playback on the active device.
-    def pause(self):
-        self._sp.pause_playback()
-
     # Skips to the next track within the current context.
     def next_track(self):
         self._sp.next_track()
-
-    # Goes back to the previous track within the current context.
-    def previous_track(self):
-        self._sp.previous_track()
 
     # Returns a dict describing what's playing, or None if nothing is.
     def get_current_playback(self):
@@ -68,8 +56,10 @@ class SpotifyController:
         if not playback or not playback.get("item"):
             return None
         item = playback["item"]
+        images = item.get("album", {}).get("images", [])
         return {
             "track_name": item["name"],
+            "cover_url": images[0]["url"] if images else None,
             "artist_name": ", ".join(a["name"] for a in item["artists"]),
             "is_playing": playback["is_playing"],
             "in_target_playlist": self._is_target_playlist(playback.get("context")),
