@@ -1,15 +1,17 @@
 # SpotifySimplified
 
-A minimal app that connects to one Spotify playlist and offers a single Next
-button to skip tracks within that playlist. Built with Kivy so
+A minimal app that connects to one Spotify playlist and offers a single button,
+marked with a play icon, to skip tracks within that playlist. Built with Kivy so
 it can run on desktop for development and be packaged into an Android APK with
 Buildozer.
 
 ## Status
 
 The app works on desktop and as an Android APK, including connecting to
-Spotify on the phone. Once connected, it plays the configured playlist from its
-first song and shows the current track's album cover above the Next button.
+Spotify on the phone. It opens directly on the play button: the first press
+connects to Spotify and plays the configured playlist from its first song, and
+later presses skip to the next track. Once connected, the current track's album
+cover is shown above the button.
 
 ## Setup (desktop, for development)
 
@@ -30,10 +32,10 @@ first song and shows the current track's album cover above the Next button.
    ```
    python main.py
    ```
-5. Click "Connect to Spotify", log in via the browser window that opens, and
-   grant access. The app will start the configured playlist from its first song
-   on your active Spotify device (desktop app, phone, or web player must already
-   be open) and show the song's cover.
+5. Click the play button, log in via the browser window that opens, and grant
+   access. The app will start the configured playlist from its first song on your active
+   Spotify device (desktop app, phone, or web player must already be open) and
+   show the song's cover. Each later click skips to the next track.
 
 Note: playback control endpoints require a Spotify **Premium** account and at
 least one active Spotify device.

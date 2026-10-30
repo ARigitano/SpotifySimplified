@@ -2,6 +2,7 @@ import threading
 
 from kivy.app import App
 from kivy.clock import Clock
+from kivy.graphics import Color, Triangle
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.image import AsyncImage
@@ -10,32 +11,54 @@ from kivy.uix.label import Label
 from spotify_client import NoActiveDeviceError, SpotifyController
 
 POLL_INTERVAL_SECONDS = 3
+FLASH_YELLOW = (1, 1, 0, 1)
+BLACK = (0, 0, 0, 1)
+PLAY_ICON_SCALE = 2 / 3
+
+
+class PlayButton(Button):
+    # Draws the play triangle on top of the button and keeps it in sync with the button's geometry.
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        with self.canvas.after:
+            Color(*BLACK)
+            self.play_icon = Triangle()
+        self.bind(pos=self._update_play_icon, size=self._update_play_icon)
+
+    # Centers the triangle, with its width and height both a fraction of the button's height.
+    def _update_play_icon(self, *_):
+        side = self.height * PLAY_ICON_SCALE
+        left = self.center_x - side / 2
+        bottom = self.center_y - side / 2
+        self.play_icon.points = [left, bottom, left, bottom + side, left + side, self.center_y]
 
 
 class RootLayout(BoxLayout):
-    # Builds the initial UI: a status label and a single "Connect" button.
+    # Builds the initial UI: a status label (empty until there's something to report) and the "Next" button.
     def __init__(self, **kwargs):
         super().__init__(orientation="vertical", padding=20, spacing=12, **kwargs)
         self.controller = None
 
-        self.status_label = Label(text="Not connected", font_size=20, size_hint_y=0.3)
+        self.status_label = Label(text="", font_size=20, size_hint_y=0.7)
         self.add_widget(self.status_label)
-
-        self.connect_button = Button(text="Connect to Spotify", size_hint_y=0.2)
-        self.connect_button.bind(on_release=lambda _: self.connect())
-        self.add_widget(self.connect_button)
 
         self.cover_image = AsyncImage(fit_mode="contain", size_hint_y=0.7)
 
-        self.next_button = Button(text="Next", size_hint_y=0.3)
+        # background_normal="" drops Kivy's default grey texture, which would otherwise dull the color.
+        self.next_button = PlayButton(
+            size_hint_y=0.3,
+            background_normal="",
+            background_color=FLASH_YELLOW,
+        )
         self.next_button.bind(on_release=lambda _: self.on_next())
+        self.add_widget(self.next_button)
 
         self.poll_event = None
 
     # Kicks off Spotify authentication on a background thread so the UI doesn't freeze.
     def connect(self):
         self.status_label.text = "Connecting... (check your browser)"
-        self.connect_button.disabled = True
+        self.next_button.disabled = True
         threading.Thread(target=self._connect_worker, daemon=True).start()
 
     # Runs the blocking OAuth flow, then starts the target playlist and polling.
@@ -57,16 +80,15 @@ class RootLayout(BoxLayout):
     def _on_connected(self, controller):
         self.controller = controller
         self.remove_widget(self.status_label)
-        self.remove_widget(self.connect_button)
-        self.add_widget(self.cover_image)
-        self.add_widget(self.next_button)
+        self.add_widget(self.cover_image, index=1)  # index=1 keeps it above the Next button
+        self.next_button.disabled = False
         self.refresh_now_playing()
         self.poll_event = Clock.schedule_interval(lambda _dt: self.refresh_now_playing(), POLL_INTERVAL_SECONDS)
 
-    # Re-enables the connect button and shows the error if connecting failed.
+    # Re-enables the Next button and shows the error if connecting failed, so pressing it retries.
     def _on_connect_failed(self, message):
         self.status_label.text = f"Connection failed: {message}"
-        self.connect_button.disabled = False
+        self.next_button.disabled = False
 
     # Fetches now-playing info on a background thread to avoid blocking the UI.
     def refresh_now_playing(self):
@@ -85,8 +107,13 @@ class RootLayout(BoxLayout):
         cover_url = playback["cover_url"] if playback else None
         self.cover_image.source = cover_url or ""
 
-    # Skips to the next track, then refreshes the cover right away instead of waiting for the next poll.
+    # Connects and starts the playlist on the first press; afterwards skips to the next track,
+    # then refreshes the cover right away instead of waiting for the next poll.
     def on_next(self):
+        if self.controller is None:
+            self.connect()
+            return
+
         def worker():
             self.controller.next_track()
             Clock.schedule_once(lambda _dt: self.refresh_now_playing())
